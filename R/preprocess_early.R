@@ -1,49 +1,107 @@
 library(tidyverse)
+library(janitor)
 
+## Helper functions
+
+calc_dist <- function(x0, y0, x1, y1){
+  pass_dist = sqrt((x1-x0)^2 + (y1 - y0)^2)
+  return(pass_dist)
+}
+
+## Column rename
+
+map_names <- 
+  c(round = "roundNumber",
+  homeTeam = "homeTeam.teamName",
+  awayTeam = "awayTeam.teamName",
+  homeTeamScore = "homeTeamScore.totalScore",
+  awayTeamScore = "awayTeamScore.totalScore",
+  chainNumber = "chain_number",
+  venueName = "venue.name",
+  playingFor = "team")
+
+## Read in data
+## Rename columns
 chains <- read_csv("data/chains_data.csv") %>% 
-  rowid_to_column() %>%
-  filter(!is.na(team), !str_detect(description, "50")) %>% 
-  mutate(chain_id = consecutive_id(playerId), 
-         .by = c(roundNumber, homeTeam.teamName, period, chain_number))
-
-outcome_summary <- 
-  chains %>% 
-  group_by(roundNumber, homeTeam.teamName, period,chain_number, chain_id) %>%
-  summarise(outcomes = paste(description, collapse = ", "),
-            n = n(),
-            rowid_start = first(rowid),
-            .groups = "drop")
-
-outcome_summary %>% 
-  sample_n(size = 1) %>% 
-  inner_join(chains) %>%
-  mutate(chain_num = consecutive_id(playerId), 
-         .by = c(roundNumber, homeTeam.teamName, period, chain_number)) %>% 
-  View()
-
-chains %>% 
-  mutate(chain_num = consecutive_id(playerId), 
-         .by = c(roundNumber, homeTeam.teamName, period, chain_number)) %>% 
-  slice(13019:(13019+4)) %>% View
-
-chains %>% 
   rowid_to_column() %>% 
-  filter(!is.na(team), description != "Kick Into F50") %>% 
-  filter(roundNumber == 5, str_detect(homeTeam.teamName, "Brisba"), period == 2, chain_number == 93) %>% 
-  mutate(chain_id = consecutive_id(playerId), 
-         .by = c(roundNumber, homeTeam.teamName, period, chain_number)) %>%
-  select(team, chain_number, period, periodSeconds, playerId, surname, description, disposal, chain_id)
+  # Rename columns
+  rename(any_of(map_names)) %>% 
+  # Also remove Inside 50 rows
+  filter(!str_detect(description, "50")) %>% 
+  # Create an id for each possession
+  replace_na(list(playerId = "CONTEXT")) %>% 
+  mutate(possession_id = consecutive_id(playerId), 
+         .by = c(round, homeTeam, period, chainNumber)) %>% 
+  # Normalise x/y loc
+  mutate(x_norm = x/venueLength/2,
+         y_norm = y/venueWidth/2)
 
-### Create a match number column
+## Create context dataframe
 
-### Create a 
+context_data <- read_csv("data/chains_data.csv") %>%
+  rename(any_of(map_names)) %>% 
+  rowid_to_column() %>% 
+  filter(is.na(playingFor))
 
-### Gather a table of possessions
+## Create venue dimensions datafram
+
+venue_dims <- chains %>% 
+  distinct(venueName, venueWidth, venueLength)
+
+## Create possession summary
 
 # - gained pos
 # - position run
 # - outcome
 # - score/goal/behind
+# - #fumbles/drops
+
+possession_summary <- 
+  chains %>% 
+  group_by(round, homeTeam, period, chainNumber, possession_id) %>%
+  summarise(outcomes = paste(description, collapse = ", "),
+            n = n(),
+            bounces = sum(description == "Bounce"),
+            handballs = sum(description == "Handball"),
+            ballGet = sum(str_detect(description, "Ball Get")),
+            crumb = sum(str_detect(description, "(C|c)rumb")),
+            rowid_start = first(rowid),
+            initialState = first(initialState),
+            finalState = first(finalState),
+            xInitialPoss = first(x),
+            yInitialPoss = first(y),
+            xFinalPoss = last(x),
+            yFinalPoss = last(y),
+            distanceFromPoss = calc_dist(xInitialPoss, yInitialPoss, xFinalPoss, yFinalPoss),
+            initialDistFromGoal = calc_dist(xInitialPoss, yInitialPoss, first(venueLength), 0),
+            finalDistFromGoal = calc_dist(xFinalPoss, yFinalPoss, first(venueLength), 0),
+            deltaDistFromGoal = finalDistFromGoal - initialDistFromGoal,
+            .groups = "drop") %>% 
+  mutate(disposalDist = pmap_dbl(list(xFinalPoss, yFinalPoss, lead(xInitialPoss), lead(yInitialPoss)),  calc_dist),
+         possessionDist = pmap_dbl(list(xInitialPoss, yInitialPoss, lead(xInitialPoss), lead(yInitialPoss)),  calc_dist))
+
+chains %>% 
+inner_join(possession_summary %>% 
+  slice_max(possessionDist, n = 5) %>%
+  slice(3) %>% 
+    select(round, homeTeam, period, chainNumber, possession_id))
+
+chains %>% 
+  inner_join(chains %>% 
+               sample_n(1) %>% 
+               select(season, round, homeTeam, period, chainNumber, possession_id)) %>% View
+
+chains %>% 
+  filter(between(rowid, 271668-5, 271668+5)) %>% View
+
+### Create a match number column
+
+### Create a schedule df
+## Maybe source this from fitzRoy
+chains %>% 
+  distinct(date, season, round, homeTeam, awayTeam, venueName)
+
+
 
 chains %>% 
   group_by(seasonroundNumber, homeTeam.teamName, period,chain_number, chain_id) %>%
