@@ -1,0 +1,69 @@
+description,type
+Kick,Disposal
+Handball,Disposal
+Handball Received,Possession gain
+Uncontested Mark,Possession gain
+Loose Ball Get,Possession gain
+Spoil,Play on
+Loose Ball Get Crumb,Possession gain
+Hard Ball Get,Possession gain
+Gather,Possession gain
+Out of Bounds,Outcome
+Ball Up Call,Outcome
+Contested Mark,Possession gain
+Free For,Possession gain
+Centre Bounce,Start of play
+Contest Target,Play on
+Goal,Outcome
+Gather From Hitout,Posession gain
+Kickin play on,Posession gain
+Behind,Outcome
+Contested Knock On,Disposal
+Ground Kick,Disposal
+Mark On Lead,Posession gain
+Hard Ball Get Crumb,Posession gain
+Gather from Opposition,Posession gain
+Bounce,Play on
+Shot At Goal,Secondary info
+Mark Fumbled,Play on
+Mark Dropped,Play on
+OOF Kick In,Possession gain
+Out On Full After Kick,Outcome
+Ruck Hard Ball Get,Possession gain
+No Pressure Error,Disposal
+Free For: In Possession,Play on
+Free Advantage,Play on
+Kickin short,Possession gain
+Knock On,Disposal
+Free For: Off The Ball,Possession gain
+Tackle,Disposal
+Pack Mark (P),Possession gain
+Out On Full,Outcome
+Pack Mark (O),Possession gain
+Free For: Before the Bounce,Possession gain
+Debit,Play on
+Smothered,Outcome
+Rushed,Outcome
+Tackled By,Disposal
+Kick In Ineffective,Poss/Disp
+Shepherd,Play on
+Clearance,Disposal
+Kickin long,Poss/Disp
+Kick In Clanger,Poss/Disp
+Credit,Play on
+Dropped Mark,Play on
+Spoil gaining possession,Possession gain
+Play On,Play on
+Hitout,Poss/Disp
+Smother After Disposal,Secondary info
+Clearance (Operator),Play on
+Dispossessed,Disposal
+Kick Long To Adv.,Secondary info
+Missed Tackle,Play on
+Spoil ineffective,Secondary info
+Baulked,Poss/Disp
+Broken Tackle,Poss/Disp
+CB Hitout To Advantage,Poss/Disp
+Effective Knock On,Poss/Disp
+First Possession,Poss/Disp
+Hold,Poss/Disp
