@@ -2,6 +2,7 @@
 
  - There's often information about a kick afterwards, need to include. Most often when the kick doesn't go to a player (ie. goal, out of bounds)
       - Need to get the last disposal (Kick, Handball, Ground Kick) and see if there's anything after it
+      - Look at what happens when a) pass to team mate, b) turnover, c) some game event (goal, end of quarter, kick out bounds)
 
  - Readme/landing page
  - ~~Viz passing network (network diagrams in python)~~
@@ -17,6 +18,7 @@
  - Add information about free kicks in possessions (not start)
  - Determine continuity/discontiuity between posessions for start and end position calculations
  - Weird thing at the end of qtr when last poss is at 0,0
+       - Look at what happens when a) pass to team mate, b) turnover, c) some game event (goal, end of quarter, kick out bounds)
 
 
 
