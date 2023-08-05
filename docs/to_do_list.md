@@ -4,20 +4,23 @@
       - Need to get the last disposal (Kick, Handball, Ground Kick) and see if there's anything after it
 
  - Readme/landing page
- - Viz passing network (network diagrams in python)
+ - ~~Viz passing network (network diagrams in python)~~
  - Viz chains
     - Remove superflous events, just keep the ones important for understanding
  - Viz footy oval (with/without normalised values?)
    - Early version = DONE
-   - Flatten the goal line, add goal + point posts
+   - ~~Flatten the goal line, add goal + point posts~~
  - summarise effective disposal position for each player
  - build xThreat model based on whether 
  - Think about cacluating a delta threat before and after possession
  - Get most effective possession in a given game
  - Add information about free kicks in possessions (not start)
  - Determine continuity/discontiuity between posessions for start and end position calculations
+ - Weird thing at the end of qtr when last poss is at 0,0
 
 
 
 Examples of wierd chains
  - 2023_13_Hawthorn_C147
+ - 2023_6_Fremantle_C206_P5 - This chain ends in a Freo spoil in a WB chain, but isn't a turnover hence ins't duplicated. Damn.
+ - 2023_3_GWS_Giants_C187_P1 - Weird kickin, starting location for kickin maybe wrong
