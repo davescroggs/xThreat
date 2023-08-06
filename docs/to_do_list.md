@@ -19,6 +19,7 @@
  - Determine continuity/discontiuity between posessions for start and end position calculations
  - Weird thing at the end of qtr when last poss is at 0,0
        - Look at what happens when a) pass to team mate, b) turnover, c) some game event (goal, end of quarter, kick out bounds)
+ - Kicks after marks appear as player movement
 
 
 
