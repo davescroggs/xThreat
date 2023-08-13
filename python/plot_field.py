@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from math import pi
@@ -45,7 +46,7 @@ def generate_afl_oval(v):
 
     # Find ellipse dimensions to have a straight goal line
     while not in_bounds:
-        x_lim += 0.01; y_lim += 0.01; 
+        x_lim += 0.01; y_lim += 0.01*0.8; 
         rad_cc = np.array(((-goal_linex)**2/(x_lim)**2) + ((-goal_liney)**2/(y_lim)**2))
         in_bounds = all(rad_cc < 1)
 
@@ -73,4 +74,48 @@ def generate_afl_oval(v):
 
     plt.scatter(0,0,s=15)
 
+    plt.show()
+
+
+def plot_events(possession_summary, chains_processed, id=None, id_type="chainId", print_id=False):
+
+    def label_point(x, y, val, ax):
+        a = pd.concat({'x': x, 'y': y, 'val': val}, axis=1)
+        for i, point in a.iterrows():
+            ax.text(point['x'], point['y'], str(point['val']), color='white', verticalalignment='center', horizontalalignment='center')
+            
+    # For no id supplied, show a random example
+    if (id is None):
+        id = possession_summary[id_type].sample(1).values
+    elif (~isinstance(id,np.ndarray)):
+        id = np.array(id)
+
+    if print_id:
+        print(id)
+        
+    plot_df = possession_summary[possession_summary[id_type].isin(id)].sort_values('possessionNum').copy()
+
+    game_info = chains_processed[chains_processed[id_type].isin(id)][['season', 'roundNumber', 'homeTeam', 'awayTeam']].drop_duplicates()
+    game_title = 'Round ' + game_info.roundNumber.map(str) + ' ' + game_info.season.map(str) + ' ' + game_info.homeTeam + ' vs. ' + game_info.awayTeam
+
+    time_info = chains_processed[chains_processed[id_type].isin(id)][['season', 'roundNumber', 'homeTeam', 'awayTeam', 'period', 'periodSeconds']].drop_duplicates()
+    time_info = 'Qtr ' + time_info.period.values[0].astype(str) + ": " + time_info.periodSeconds.values[0].astype(str) + '-' + time_info.periodSeconds.values[-1].astype(str) + ' seconds'
+
+    id_info = id_type + ' ' + ", ".join(id.tolist())
+
+    # plot_df = pd.wide_to_long(plot_df, stubnames=['x', 'y'], i=['possessionNum'], j='state', suffix=r'\w+').reset_index()
+    plot_df_wide = pd.wide_to_long(plot_df, stubnames=['x', 'y'], i=['possessionNum'], j='state', suffix=r'\w+').reset_index()
+    plt.figure(figsize=(13,9))
+    for _, rows in plot_df.iterrows():
+        x = (rows.xFinalPoss, rows.xNextPos)
+        y = (rows.yFinalPoss, rows.yNextPos)
+        plt.plot(x, y, 'r-')
+        x = (rows.xInitialPoss, rows.xFinalPoss)
+        y = (rows.yInitialPoss, rows.yFinalPoss)
+        plt.plot(x, y, 'b--')
+    label_point(plot_df.xInitialPoss, plot_df.yInitialPoss, plot_df.possessionNum.astype(str), plt.gca())
+    plt.plot(plot_df['xInitialPoss'], plot_df['yInitialPoss'], 'ko', markersize=14)
+    plt.title(game_title.values[0] + '\n' + time_info)
+    plt.figtext(0.5, 0.01, id_info, wrap=True, horizontalalignment='center', fontsize=12)
+    generate_afl_oval(plot_df.venueName.values[0])
     plt.show()
