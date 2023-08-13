@@ -24,6 +24,7 @@
  - Distance measures are stuffed
  - ~~End of quarter possession probaly needs to go. Ball ends up at the centre bounce.~~
  - Look at passing networks, see if next reciever works
+ - Kicks after marks appear as player movement
 
 
 
