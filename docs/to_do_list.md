@@ -18,13 +18,20 @@
  - Add information about free kicks in possessions (not start)
  - ~~Determine continuity/discontiuity between posessions for start and end position calculations~~
  - ~~Weird thing at the end of qtr when last poss is at 0,0~~
-       - Look at what happens when a) pass to team mate, b) turnover, c) some game event (goal, end of quarter, kick out bounds)
- - Spoils for opposition appear in a chain where they're not a turnover
+       - ~~Look at what happens when a) pass to team mate, b) turnover, c) some game event (goal, end of quarter, kick out bounds)~~
+ - ~~Spoils for opposition appear in a chain where they're not a turnover~~
  - 50 m penalties look long carries
  - Distance measures are stuffed
  - ~~End of quarter possession probaly needs to go. Ball ends up at the centre bounce.~~
  - Look at passing networks, see if next reciever works
- - Kicks after marks appear as player movement
+ - ~~Kicks after marks appear as player movement~~
+
+
+## Viz
+
+- Show different disposal types as different line/colour
+- Show different initial poss types as different colours etc
+- Have a table of whom each possession belongs to off to one side
 
 
 
@@ -32,3 +39,4 @@ Examples of wierd chains
  - 2023_13_Hawthorn_C147
  - 2023_6_Fremantle_C206_P5 - This chain ends in a Freo spoil in a WB chain, but isn't a turnover hence ins't duplicated. Damn.
  - 2023_3_GWS_Giants_C187_P1 - Weird kickin, starting location for kickin maybe wrong
+ - 2023_14_GWS_Giants_C36 - 2 frees, one after another for different teams. Maybe equal opposite 50m pens?

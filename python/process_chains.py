@@ -27,17 +27,16 @@ game_identifiers = ['season', 'roundNumber', 'homeTeam']
 chain_identifiers = game_identifiers + ['chainNumber']
 possession_identifiers = chain_identifiers + ['possessionNum']
 
+# Create ID for chains and possession for easy lookup
+chains_raw['chainId'] = chains_raw.season.astype(str) + "_" + chains_raw.roundNumber.astype(str) + "_" + chains_raw.homeTeam.apply(lambda x: x.replace(" ", "_")) + "_C" + chains_raw.chainNumber.astype(str)
+
 # Remove Kick Into F50 type results
 chains_processed = chains_raw[~chains_raw.description.isin(['Kick Into F50','Kick Inside 50 Result', 'Inside 50', 'Shot At Goal', 'Centre Bounce'])].copy()
 chains_processed['date'] = pd.to_datetime(chains_processed['date'])
-chains_processed = chains_processed.sort_values(by=['season', 'roundNumber', 'date', 'homeTeam', 'period', 'periodSeconds'])
-
+chains_processed = chains_processed.sort_values(by=['season', 'roundNumber', 'date', 'homeTeam', 'displayOrder'])
 # Create number for each possession
-chains_raw['possessionNum'] = chains_raw.groupby(["roundNumber", "homeTeam", "period", "chainNumber"],  group_keys=False)['playerId'].apply(lambda s: s.ne(s.shift()).cumsum())
-# Create ID for chains and possession for easy lookup
-chains_raw['chainId'] = chains_raw.season.astype(str) + "_" + chains_raw.roundNumber.astype(str) + "_" + chains_raw.homeTeam.apply(lambda x: x.replace(" ", "_")) + "_C" + chains_raw.chainNumber.astype(str)
-chains_raw['possessionId'] = chains_raw['chainId'] + "_P" + chains_raw.possessionNum.astype(str)
-
+chains_processed['possessionNum'] = chains_processed.groupby(["roundNumber", "homeTeam", "period", "chainNumber"],  group_keys=False)['playerId'].apply(lambda s: s.ne(s.shift()).cumsum())
+chains_processed['possessionId'] = chains_processed['chainId'] + "_P" + chains_processed.possessionNum.astype(str)
 
 chains_processed['x_norm'] = chains_processed['x'] / (chains_processed['venueLength'] / 2)
 ## The average ratio of width/length in the league is about 0.78 or so, round up to 0.8
@@ -81,7 +80,9 @@ def calc_dist(x0, y0, x1, y1):
     return np.sqrt((x1-x0)**2 + (y1 - y0)**2)
 
 def check_final_disposal(x):
-    return len(x) - np.argmax(np.flip(x.isin(['Kick', 'Handball', 'Ground Kick']).values)) - 1
+    disposal_types = ['Kick', 'Handball', 'Ground Kick', 'OOF Kick In', 'Kickin short',
+                     'Kickin long', 'Kick In Ineffective', 'Kick Long To Adv.', 'Kick In Clanger']
+    return len(x) - np.argmax(np.flip(x.isin(disposal_types).values)) - 1
 
 possession_summary = (chains_processed
                         .groupby(['season', 'roundNumber', 'homeTeam', 'period', 'chainId',  'possessionNum', 'possessionId', 'playerId','playingFor', 'venueName', 'venueLength', 'venueWidth'])
@@ -131,10 +132,17 @@ possession_summary = possession_summary[~(possession_summary.finalPos & (possess
 possession_summary = possession_summary.assign(xInitialPoss = np.where(possession_summary.initialState == "Kickin play on",-(possession_summary.venueLength/2-8.5), possession_summary.xInitialPoss),
                                                yInitialPoss = np.where(possession_summary.initialState == "Kickin play on",0 , possession_summary.yInitialPoss))
 
+# Adjust initial position for kickins
+
+initCondList = [possession_summary.initialState.str.contains('Kickin')]
+initxchoiceList = [-(possession_summary.venueLength/2 - 9)]
+initychoiceList = [0]
+initChoiceCond = ["KI"]
+
 # Adjust final position when kicking a goal/behind
-condList = [possession_summary.endOfQtr,
+finCondList = [possession_summary.endOfQtr,
             possession_summary.finalPos & (possession_summary.chainFinalState.isin(['ballUpCall','outOfBounds'])),
-            possession_summary.finalPos & (possession_summary.chainFinalState == "turnover"),
+            possession_summary.finalPos & (possession_summary.chainFinalState.isin(["turnover", 'rushed']) & ~possession_summary.outcomes.str.contains('Out On Full After Kick')),
             possession_summary.goals > 0,
             possession_summary.behindDesc=='missLeft',
             possession_summary.behindDesc=='leftPost',
@@ -142,7 +150,7 @@ condList = [possession_summary.endOfQtr,
             possession_summary.behindDesc=='touched',
             possession_summary.behindDesc=='rightPost']
 ## Y next pos
-ychoiceList = [np.NaN,
+finychoiceList = [np.NaN,
               possession_summary.yFinalPoss,
               -possession_summary.yNextPos,
               0,
@@ -152,7 +160,7 @@ ychoiceList = [np.NaN,
               0,
               -3.2]
 ## X next pos
-xchoiceList = [np.NaN,
+finxchoiceList = [np.NaN,
               possession_summary.xFinalPoss,
               -possession_summary.xNextPos] + \
               [possession_summary.venueLength/2] * 6
@@ -167,15 +175,25 @@ nextCondChoice = ['EOQ',
                  'Touched',
                  'RP']
 
-possession_summary = possession_summary.assign(xNextPos = np.select(condList, xchoiceList, default=possession_summary.xNextPos),
-                                               yNextPos = np.select(condList, ychoiceList, default=possession_summary.yNextPos),
-                                               nextPosCond = np.select(condList, nextCondChoice, default='Def'))
+possession_summary = possession_summary.assign(xInitialPoss = np.select(initCondList, initxchoiceList, default=possession_summary.xInitialPoss),
+                                               yInitialPoss = np.select(initCondList, initychoiceList, default=possession_summary.yInitialPoss),
+                                               initialPossCond = np.select(initCondList, initChoiceCond, default='Def'),
+                                               xNextPos = np.select(finCondList, finxchoiceList, default=possession_summary.xNextPos),
+                                               yNextPos = np.select(finCondList, finychoiceList, default=possession_summary.yNextPos),
+                                               nextPosCond = np.select(finCondList, nextCondChoice, default='Def'))
 
 possession_summary = possession_summary.assign(distanceFromPoss = calc_dist(possession_summary.xInitialPoss, possession_summary.yInitialPoss, possession_summary.xFinalPoss, possession_summary.yFinalPoss),
                         distanceDisposal = calc_dist(possession_summary.xFinalPoss, possession_summary.yFinalPoss, possession_summary.xInitialPoss.shift(-1), possession_summary.yInitialPoss.shift(-1), ),
                         initialDistFromGoal = calc_dist(possession_summary.xInitialPoss, possession_summary.yInitialPoss, possession_summary.venueLength/2, 0),
                         finalDistFromGoal = calc_dist(possession_summary.xFinalPoss, possession_summary.yFinalPoss, possession_summary.venueLength/2, 0),
-                        disposalRecipient = np.where((~possession_summary.possChng & (possession_summary.disposal > 0)) | ~possession_summary.endOfQtr, possession_summary.playerId.shift(-1),np.NaN))
+                        disposalRecipient = np.where(\
+                            # Disposal recipient when there is a disposal and the team doesn't loose possession
+                            (~possession_summary.possChng & (possession_summary.disposal > 0)) | \
+                            # Its not the end of quarter
+                            ~possession_summary.endOfQtr | \
+                            # It's not a discontinuity event
+                            possession_summary.finalPos & (possession_summary.chainFinalState.isin(['ballUpCall','outOfBounds'])), \
+                            possession_summary.playerId.shift(-1),np.NaN))
 
 possession_summary['deltaDistFromGoal'] = possession_summary.finalDistFromGoal - possession_summary.initialDistFromGoal
 possession_summary.drop(['venueLength','venueWidth'], axis=1, inplace=True)
