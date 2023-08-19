@@ -45,8 +45,9 @@ def generate_afl_oval(v):
     in_bounds = False
 
     # Find ellipse dimensions to have a straight goal line
+    # Keep adding 0.01 m to ellipse length until the goal line sits within it
     while not in_bounds:
-        x_lim += 0.01; y_lim += 0.01*0.8; 
+        x_lim += 0.01
         rad_cc = np.array(((-goal_linex)**2/(x_lim)**2) + ((-goal_liney)**2/(y_lim)**2))
         in_bounds = all(rad_cc < 1)
 
@@ -104,7 +105,7 @@ def plot_events(possession_summary, chains_processed, id=None, id_type="chainId"
     id_info = id_type + ' ' + ", ".join(id.tolist())
 
     # plot_df = pd.wide_to_long(plot_df, stubnames=['x', 'y'], i=['possessionNum'], j='state', suffix=r'\w+').reset_index()
-    plot_df_wide = pd.wide_to_long(plot_df, stubnames=['x', 'y'], i=['possessionNum'], j='state', suffix=r'\w+').reset_index()
+    # plot_df_wide = pd.wide_to_long(plot_df, stubnames=['x', 'y'], i=['possessionNum'], j='state', suffix=r'\w+').reset_index()
     plt.figure(figsize=(13,9))
     for _, rows in plot_df.iterrows():
         x = (rows.xFinalPoss, rows.xNextPos)
