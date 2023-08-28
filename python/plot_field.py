@@ -27,7 +27,7 @@ def generate_afl_oval(v):
     x_lim = venueDims[v]['venueLength'] / 2
     y_lim = venueDims[v]['venueWidth'] / 2
 
-    plt.grid(color='lightgray',linestyle='--')
+    # plt.grid(color='lightgray',linestyle='--')
     t = np.linspace(0, 2*pi, 500)
 
     x_sq = np.array([x_lim, x_lim-9 , x_lim-9, x_lim])

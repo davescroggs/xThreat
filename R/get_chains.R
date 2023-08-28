@@ -169,7 +169,6 @@ get_single_chain <- function(chains_t2,chain_number) {
   }
 }
 
-chains_2023 <- get_match_chains() %>%
-  as_tibble() 
+chains_2023 <- map_dfr(2022:2023, ~as_tibble(get_match_chains(season = .x)))
   
 write_csv(chains_2023,"data/chains_data.csv")

@@ -26,6 +26,12 @@
  - Look at passing networks, see if next reciever works
  - ~~Kicks after marks appear as player movement~~
 
+Threat models
+ - https://soccermatics.readthedocs.io/en/latest/lesson4/xTAction.html
+ https://soccermatics.readthedocs.io/en/latest/lesson4/xTPos.html
+ https://soccermatics.medium.com/explaining-expected-threat-cbc775d97935
+ - Look at how adding negative events
+ - Check out scoring events and clean up, lost in the defensive half?
 
 ## Viz
 

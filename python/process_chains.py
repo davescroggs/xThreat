@@ -31,7 +31,7 @@ possession_identifiers = chain_identifiers + ['possessionNum']
 chains_raw['chainId'] = chains_raw.season.astype(str) + "_" + chains_raw.roundNumber.astype(str) + "_" + chains_raw.homeTeam.apply(lambda x: x.replace(" ", "_")) + "_C" + chains_raw.chainNumber.astype(str)
 
 # Remove Kick Into F50 type results
-chains_processed = chains_raw[~chains_raw.description.isin(['Kick Into F50','Kick Inside 50 Result', 'Inside 50', 'Shot At Goal', 'Centre Bounce'])].copy()
+chains_processed = chains_raw[~chains_raw.description.isin(['Kick Into F50','Kick Inside 50 Result', 'Inside 50', 'Shot At Goal', 'Centre Bounce', 'Mark Fumbled', 'Mark Dropped', 'Tackle','Credit','No Pressure Error'])].copy()
 chains_processed['date'] = pd.to_datetime(chains_processed['date'])
 chains_processed = chains_processed.sort_values(by=['season', 'roundNumber', 'date', 'homeTeam', 'displayOrder'])
 # Create number for each possession
@@ -45,6 +45,9 @@ chains_processed['y_norm'] = chains_processed['y'] / (chains_processed['venueWid
 # Fill missing values for context rows
 chains_processed['playerId'] = chains_processed.groupby(['chainId'])['playerId'].transform(lambda s: s.ffill())
 chains_processed['playingFor'] = chains_processed.groupby(['chainId'])['playingFor'].transform(lambda s: s.ffill())
+
+# Indicate which chains have ended with a shot at goal
+# chains_processed['shotAtGoalChain'] = chains_processed.groupby('chainId', group_keys=False)['shotAtGoal'].transform(lambda s: any(s))
 
 # Identify duplicate rows that show the player gaining possession and remove 
 dupes = chains_processed.duplicated(subset=['season', 'roundNumber', 'homeTeam', 'period', 'periodSeconds', 'playerId', 'description'], keep='last')
@@ -95,6 +98,7 @@ possession_summary = (chains_processed
                             yFinalPoss = ('y', 'last'),
                             posStart = ('periodSeconds', 'first'),
                             posEnd = ('periodSeconds', 'last'),
+                            shotAtGoal = ('shotAtGoal', 'any'),
                             bounces = ('description', lambda x: sum(x == "Bounce")),
                             goals = ('description', lambda x: sum(x == "Goal")),
                             behind = ('description', lambda x: sum(x == "Behind")),
@@ -114,8 +118,8 @@ possession_summary = (chains_processed
 
 print('Step 2 complete: time = ', time.time() - st, ' seconds')
 # Get the start position of the next possession as the 
-possession_summary['xNextPos'] = possession_summary.groupby(['season', 'roundNumber', 'homeTeam', 'period'], as_index=False)['xInitialPoss'].shift(-1)
-possession_summary['yNextPos'] = possession_summary.groupby(['season', 'roundNumber', 'homeTeam', 'period'], as_index=False)['yInitialPoss'].shift(-1)
+possession_summary['xNextPoss'] = possession_summary.groupby(['season', 'roundNumber', 'homeTeam', 'period'], as_index=False)['xInitialPoss'].shift(-1)
+possession_summary['yNextPoss'] = possession_summary.groupby(['season', 'roundNumber', 'homeTeam', 'period'], as_index=False)['yInitialPoss'].shift(-1)
 
 # Remove spoils from final poss
 # Update final disposal characteristics when not the final event
@@ -124,8 +128,8 @@ for index, row in possession_summary.iterrows():
         possession_summary.loc[index, 'finalState'] = row.disposalList[row.finalDisposal]
         possession_summary.loc[index, 'xFinalPoss'] = row.xList[row.finalDisposal]
         possession_summary.loc[index, 'yFinalPoss'] = row.yList[row.finalDisposal]
-        possession_summary.loc[index, 'xNextPos'] = row.xList[-1]
-        possession_summary.loc[index, 'yNextPos'] = row.yList[-1]
+        possession_summary.loc[index, 'xNextPoss'] = row.xList[-1]
+        possession_summary.loc[index, 'yNextPoss'] = row.yList[-1]
 
 possession_summary = possession_summary[~(possession_summary.finalPos & (possession_summary.finalState == "Spoil"))]
 
@@ -152,7 +156,7 @@ finCondList = [possession_summary.endOfQtr,
 ## Y next pos
 finychoiceList = [np.NaN,
               possession_summary.yFinalPoss,
-              -possession_summary.yNextPos,
+              -possession_summary.yNextPoss,
               0,
               6.4,
               3.2,
@@ -162,7 +166,7 @@ finychoiceList = [np.NaN,
 ## X next pos
 finxchoiceList = [np.NaN,
               possession_summary.xFinalPoss,
-              -possession_summary.xNextPos] + \
+              -possession_summary.xNextPoss] + \
               [possession_summary.venueLength/2] * 6
 ## Record condition for debugging
 nextCondChoice = ['EOQ',
@@ -178,8 +182,8 @@ nextCondChoice = ['EOQ',
 possession_summary = possession_summary.assign(xInitialPoss = np.select(initCondList, initxchoiceList, default=possession_summary.xInitialPoss),
                                                yInitialPoss = np.select(initCondList, initychoiceList, default=possession_summary.yInitialPoss),
                                                initialPossCond = np.select(initCondList, initChoiceCond, default='Def'),
-                                               xNextPos = np.select(finCondList, finxchoiceList, default=possession_summary.xNextPos),
-                                               yNextPos = np.select(finCondList, finychoiceList, default=possession_summary.yNextPos),
+                                               xNextPoss = np.select(finCondList, finxchoiceList, default=possession_summary.xNextPoss),
+                                               yNextPoss = np.select(finCondList, finychoiceList, default=possession_summary.yNextPoss),
                                                nextPosCond = np.select(finCondList, nextCondChoice, default='Def'))
 
 possession_summary = possession_summary.assign(distanceFromPoss = calc_dist(possession_summary.xInitialPoss, possession_summary.yInitialPoss, possession_summary.xFinalPoss, possession_summary.yFinalPoss),
